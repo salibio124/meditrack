@@ -7,8 +7,9 @@ const api = axios.create({
   },
 });
 
+// Uses sessionStorage so closing the tab wipes the token immediately
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('meditrack_token');
+  const token = sessionStorage.getItem('meditrack_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -19,8 +20,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('meditrack_token');
-      localStorage.removeItem('meditrack_user');
+      sessionStorage.removeItem('meditrack_token');
+      sessionStorage.removeItem('meditrack_user');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
