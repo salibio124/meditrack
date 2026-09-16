@@ -6,7 +6,7 @@ export default function Navbar() {
   const { user, logout } = useContext(AuthContext);
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm shrink-0">
+    <header className="h-16 w-full bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm shrink-0 m-0">
       <div className="flex items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Portal:</span>
         <span className="text-sm font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">

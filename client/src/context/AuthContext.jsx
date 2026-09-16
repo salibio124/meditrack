@@ -1,28 +1,37 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import api from '../services/api';
+import NotificationToast from '../components/NotificationToast';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
   const timeoutRef = useRef(null);
+  const toastTimerRef = useRef(null);
 
-  // 15-minute inactivity auto-logout
+  const showToast = (message, type = 'success') => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, type });
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
   const INACTIVITY_LIMIT = 15 * 60 * 1000;
 
   const resetTimer = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (sessionStorage.getItem('meditrack_token')) {
       timeoutRef.current = setTimeout(() => {
-        alert('Session expired due to 15 minutes of inactivity for patient data protection.');
+        showToast('Session expired due to inactivity for data privacy.', 'error');
         logout();
       }, INACTIVITY_LIMIT);
     }
   };
 
   useEffect(() => {
-    // Read from sessionStorage (WIPED on tab close)
     const savedUser = sessionStorage.getItem('meditrack_user');
     const token = sessionStorage.getItem('meditrack_token');
 
@@ -57,6 +66,7 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.setItem('meditrack_user', JSON.stringify(res.data.user));
       setUser(res.data.user);
       resetTimer();
+      showToast(`Welcome back, ${res.data.user.fullName}!`, 'success');
     }
     return res.data;
   };
@@ -69,8 +79,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, showToast }}>
       {children}
+      <NotificationToast toast={toast} onClose={() => setToast(null)} />
     </AuthContext.Provider>
   );
 };
