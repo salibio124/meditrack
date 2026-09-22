@@ -8,8 +8,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
-  const timeoutRef = useRef(null);
+  
+  // 15 Minutes = 900 Seconds
+  const SESSION_DURATION = 15 * 60;
+  const [timeLeft, setTimeLeft] = useState(SESSION_DURATION);
+  
   const toastTimerRef = useRef(null);
+  const timerIntervalRef = useRef(null);
 
   const showToast = (message, type = 'success') => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -19,18 +24,37 @@ export const AuthProvider = ({ children }) => {
     }, 4000);
   };
 
-  const INACTIVITY_LIMIT = 15 * 60 * 1000;
-
-  const resetTimer = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  // Reset timer on user activity (mouse movement, keystroke, click)
+  const resetActivityTimer = () => {
     if (sessionStorage.getItem('meditrack_token')) {
-      timeoutRef.current = setTimeout(() => {
-        showToast('Session expired due to inactivity for data privacy.', 'error');
-        logout();
-      }, INACTIVITY_LIMIT);
+      setTimeLeft(SESSION_DURATION);
     }
   };
 
+  // Countdown clock running every 1 second
+  useEffect(() => {
+    if (user) {
+      timerIntervalRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerIntervalRef.current);
+            showToast('Session expired due to 15 minutes of inactivity for patient privacy.', 'error');
+            logout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [user]);
+
+  // Listen to user activity to reset countdown
   useEffect(() => {
     const savedUser = sessionStorage.getItem('meditrack_user');
     const token = sessionStorage.getItem('meditrack_token');
@@ -41,7 +65,7 @@ export const AuthProvider = ({ children }) => {
         .then((res) => {
           setUser(res.data.user);
           sessionStorage.setItem('meditrack_user', JSON.stringify(res.data.user));
-          resetTimer();
+          resetActivityTimer();
         })
         .catch(() => logout())
         .finally(() => setLoading(false));
@@ -50,12 +74,11 @@ export const AuthProvider = ({ children }) => {
     }
 
     const events = ['mousemove', 'keydown', 'click', 'scroll'];
-    const handleActivity = () => resetTimer();
-    events.forEach((event) => window.addEventListener(event, handleActivity));
+    const handleEvent = () => resetActivityTimer();
+    events.forEach((e) => window.addEventListener(e, handleEvent));
 
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      events.forEach((event) => window.removeEventListener(event, handleActivity));
+      events.forEach((e) => window.removeEventListener(e, handleEvent));
     };
   }, []);
 
@@ -65,21 +88,28 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.setItem('meditrack_token', res.data.token);
       sessionStorage.setItem('meditrack_user', JSON.stringify(res.data.user));
       setUser(res.data.user);
-      resetTimer();
-      showToast(`Welcome back, ${res.data.user.fullName}!`, 'success');
+      resetActivityTimer();
+      showToast(`Welcome, ${res.data.user.fullName}!`, 'success');
     }
     return res.data;
   };
 
   const logout = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     sessionStorage.removeItem('meditrack_token');
     sessionStorage.removeItem('meditrack_user');
     setUser(null);
   };
 
+  // Format seconds to MM:SS (e.g. 14:45)
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, showToast }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, showToast, timeLeft, formattedTime: formatTime(timeLeft), resetActivityTimer }}>
       {children}
       <NotificationToast toast={toast} onClose={() => setToast(null)} />
     </AuthContext.Provider>
