@@ -12,6 +12,22 @@ export const AuthProvider = ({ children }) => {
   // 15 Minutes = 900 Seconds
   const SESSION_DURATION = 15 * 60;
   const [timeLeft, setTimeLeft] = useState(SESSION_DURATION);
+  // Load configured timeout from server settings (Default: 15 mins)
+  const [timeoutMinutes, setTimeoutMinutes] = useState(15);
+  const [isAutoLogoutEnabled, setIsAutoLogoutEnabled] = useState(true);
+
+  useEffect(() => {
+    api.get('/settings')
+      .then((res) => {
+        const s = res.data.data?.settings;
+        if (s) {
+          setTimeoutMinutes(s.inactivity_timeout || 15);
+          setIsAutoLogoutEnabled(Boolean(s.auto_logout_enabled));
+          setTimeLeft((s.inactivity_timeout || 15) * 60);
+        }
+      })
+      .catch(() => {});
+  }, [user]);
   
   const toastTimerRef = useRef(null);
   const timerIntervalRef = useRef(null);

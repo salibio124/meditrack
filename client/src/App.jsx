@@ -16,6 +16,7 @@ import ResearchMetrics from './pages/ResearchMetrics';
 import SMSLogs from './pages/SMSLogs';
 import AuditLogs from './pages/AuditLogs';
 import Users from './pages/Users';
+import Settings from './pages/Settings';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/sms" element={<SMSLogs />} />
         <Route path="/audit" element={<AuditLogs />} />
         <Route path="/users" element={<Users />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

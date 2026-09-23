@@ -29,7 +29,8 @@ app.use('/api/research', require('./routes/researchRoutes'));
 app.use('/api/sms', require('./routes/smsRoutes'));
 app.use('/api/audit-logs', require('./routes/auditRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
-
+// Add this line with the other route mounts:
+app.use('/api/settings', require('./routes/settingsRoutes'));
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', system: 'MediTrack Backend API', timestamp: new Date().toISOString() });
